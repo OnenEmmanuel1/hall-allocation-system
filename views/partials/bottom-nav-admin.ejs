@@ -1,0 +1,44 @@
+<!-- Bottom Navigation Bar (Marketplace Style) -->
+<nav class="ehas-bottom-nav">
+  <div class="ehas-nav-container">
+    <a href="/admin/dashboard" class="ehas-nav-item <%= typeof activePath !== 'undefined' && activePath === '/admin/dashboard' ? 'active' : '' %>">
+      <i data-lucide="home"></i>
+      <span>Home</span>
+    </a>
+    
+    <a href="/admin/halls" class="ehas-nav-item <%= typeof activePath !== 'undefined' && activePath === '/admin/halls' ? 'active' : '' %>">
+      <i data-lucide="building"></i>
+      <span>Halls</span>
+    </a>
+    
+    <a href="/admin/courses" class="ehas-nav-item <%= typeof activePath !== 'undefined' && activePath === '/admin/courses' ? 'active' : '' %>">
+      <i data-lucide="book-open"></i>
+      <span>Courses</span>
+    </a>
+    
+    <a href="/admin/allocations" class="ehas-nav-item <%= typeof activePath !== 'undefined' && activePath === '/admin/allocations' ? 'active' : '' %>">
+      <i data-lucide="calendar"></i>
+      <span>Allocations</span>
+    </a>
+    
+    <div class="ehas-nav-item ehas-dropdown">
+      <a href="#" class="dropdown-toggle text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" style="color: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <i data-lucide="user"></i>
+        <span>Profile</span>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li><h6 class="dropdown-header"><%= typeof user !== 'undefined' ? user.username : 'Admin' %></h6></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="/admin/schedules"><i data-lucide="clock" class="me-2" style="width:16px;"></i> Schedules</a></li>
+        <li><a class="dropdown-item" href="/admin/students"><i data-lucide="users" class="me-2" style="width:16px;"></i> Students</a></li>
+        <li><a class="dropdown-item" href="/admin/reports"><i data-lucide="file-text" class="me-2" style="width:16px;"></i> Reports</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form action="/api/auth/logout" method="POST" style="margin: 0;">
+            <button type="submit" class="dropdown-item text-danger"><i data-lucide="log-out" class="me-2" style="width:16px;"></i> Logout</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

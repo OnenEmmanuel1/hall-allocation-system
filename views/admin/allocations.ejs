@@ -1,0 +1,170 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-admin') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Page Header -->
+      <div class="ehas-page-header">
+        <div>
+          <h1 class="ehas-page-title">Run Allocation Engine</h1>
+          <p class="ehas-page-subtitle">Automated constraint satisfaction engine for hall assignment, double-booking prevention, and student anti-clash verification</p>
+        </div>
+        <div class="ehas-page-actions">
+          <button class="ehas-btn ehas-btn-primary" id="btn-run-all" onclick="runBulkAllocation()">
+            <i data-lucide="play-circle"></i>
+            <span>Run All Pending Allocations</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Message / Confirmation Alert Container -->
+      <div id="allocationMessage" style="display:none; margin-bottom: 2rem;"></div>
+
+      <!-- Schedules Allocation Grid -->
+      <div class="ehas-card">
+        <div class="ehas-card-header">
+          <h3 class="ehas-card-title">
+            <i data-lucide="list-checks" style="width:20px;height:20px;color:var(--ehas-primary);"></i>
+            Exam Schedules & Execution Status
+          </h3>
+          <span class="text-muted" style="font-size:0.8125rem;">
+            <%= schedules.length %> Examination Sessions
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="ehas-table">
+            <thead>
+              <tr>
+                <th>Scheduled Date</th>
+                <th>Time Session</th>
+                <th>Course Code</th>
+                <th>Current Status</th>
+                <th class="text-end">Engine Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (schedules.length === 0) { %>
+                <tr>
+                  <td colspan="5" class="text-center py-5 text-muted">No examination schedules found to allocate.</td>
+                </tr>
+              <% } else { %>
+                <% schedules.forEach(s => { %>
+                  <tr>
+                    <td>
+                      <strong class="text-dark"><%= new Date(s.exam_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %></strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border px-2 py-1"><%= s.exam_time %></span>
+                    </td>
+                    <td>
+                      <strong style="color:var(--ehas-primary); font-size:1rem;"><%= s.course_code %></strong>
+                    </td>
+                    <td>
+                      <% if (s.status === 'allocated') { %>
+                        <span class="ehas-badge ehas-badge-allocated">
+                          <i data-lucide="check-circle-2" style="width:13px;height:13px;"></i> Allocated
+                        </span>
+                      <% } else { %>
+                        <span class="ehas-badge ehas-badge-pending">
+                          <i data-lucide="clock" style="width:13px;height:13px;"></i> Pending
+                        </span>
+                      <% } %>
+                    </td>
+                    <td class="text-end">
+                      <button class="ehas-btn ehas-btn-outline ehas-btn-sm" onclick="runSingleAllocation(<%= s.schedule_id %>)" id="btn-run-<%= s.schedule_id %>">
+                        <i data-lucide="play" style="width:13px;height:13px;"></i> 
+                        <span><%= s.status === 'allocated' ? 'Re-run Engine' : 'Run Allocation' %></span>
+                      </button>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  async function runSingleAllocation(scheduleId) {
+    const btn = document.getElementById(`btn-run-${scheduleId}`);
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Running...';
+
+    const msgDiv = document.getElementById('allocationMessage');
+    
+    try {
+      const res = await fetch(`/api/allocations/run/${scheduleId}`, { method: 'POST' });
+      const data = await res.json();
+      
+      msgDiv.style.display = 'block';
+      if (data.success) {
+        msgDiv.className = 'ehas-alert ehas-alert-success';
+        msgDiv.innerHTML = `<i data-lucide="check-circle" style="width:20px;height:20px;"></i><div><strong>Success:</strong> ${data.message}</div>`;
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        msgDiv.className = 'ehas-alert ehas-alert-error';
+        let errHtml = `<i data-lucide="alert-triangle" style="width:20px;height:20px;"></i><div><strong>Allocation Failed:</strong> ${data.message}`;
+        if (data.errors && data.errors.length) {
+          errHtml += `<ul class="mt-2 mb-0 ps-3">`;
+          data.errors.forEach(e => errHtml += `<li>${e}</li>`);
+          errHtml += `</ul>`;
+        }
+        errHtml += `</div>`;
+        msgDiv.innerHTML = errHtml;
+      }
+    } catch (e) {
+      msgDiv.style.display = 'block';
+      msgDiv.className = 'ehas-alert ehas-alert-error';
+      msgDiv.innerHTML = `<i data-lucide="alert-triangle" style="width:20px;height:20px;"></i><span>Network error while running allocation.</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  async function runBulkAllocation() {
+    const btn = document.getElementById('btn-run-all');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Running Engine on All Pending...';
+
+    const msgDiv = document.getElementById('allocationMessage');
+    
+    try {
+      const res = await fetch(`/api/allocations/run-all`, { method: 'POST' });
+      const data = await res.json();
+      
+      msgDiv.style.display = 'block';
+      if (data.success) {
+        msgDiv.className = 'ehas-alert ehas-alert-success';
+        msgDiv.innerHTML = `<i data-lucide="check-circle" style="width:20px;height:20px;"></i><div><strong>Success:</strong> ${data.message}</div>`;
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        msgDiv.className = 'ehas-alert ehas-alert-error';
+        msgDiv.innerHTML = `<i data-lucide="alert-triangle" style="width:20px;height:20px;"></i><div><strong>Notice:</strong> ${data.message}</div>`;
+      }
+    } catch (e) {
+      msgDiv.style.display = 'block';
+      msgDiv.className = 'ehas-alert ehas-alert-error';
+      msgDiv.innerHTML = `<i data-lucide="alert-triangle" style="width:20px;height:20px;"></i><span>Network communication error.</span>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+</script>
+
+<%- include('../partials/footer') %>

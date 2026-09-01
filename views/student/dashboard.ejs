@@ -1,0 +1,129 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-student') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Student Banner / Profile Card -->
+      <% if (studentInfo) { %>
+      <div class="ehas-student-banner">
+        <div>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <div class="ehas-user-avatar" style="width:48px;height:48px;font-size:1.25rem;background:#0D7658;">
+              <%= studentInfo.full_name.charAt(0) %>
+            </div>
+            <div>
+              <h2 style="color:white; margin:0; font-size:1.6rem; font-weight:800;"><%= studentInfo.full_name %></h2>
+              <div style="color:rgba(255,255,255,0.8); font-size:0.875rem;">Faculty of Computing • Undergraduate Portal</div>
+            </div>
+          </div>
+
+          <div class="ehas-student-meta-grid">
+            <div class="ehas-student-meta-item">
+              <span class="ehas-student-meta-label">Matriculation No</span>
+              <span class="ehas-student-meta-val"><code><%= studentInfo.matric_no %></code></span>
+            </div>
+            <div class="ehas-student-meta-item">
+              <span class="ehas-student-meta-label">Department</span>
+              <span class="ehas-student-meta-val"><%= studentInfo.department %></span>
+            </div>
+            <div class="ehas-student-meta-item">
+              <span class="ehas-student-meta-label">Academic Level</span>
+              <span class="ehas-student-meta-val">Level <%= studentInfo.level %></span>
+            </div>
+            <div class="ehas-student-meta-item">
+              <span class="ehas-student-meta-label">Total Allocated Exams</span>
+              <span class="ehas-student-meta-val"><%= allocations.length %> Examinations</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-print-none">
+          <button class="ehas-btn ehas-btn-white" onclick="window.print()">
+            <i data-lucide="printer"></i>
+            <span>Print Examination Slip</span>
+          </button>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Examination Seating Table Card -->
+      <div class="ehas-card">
+        <div class="ehas-card-header">
+          <div>
+            <h3 class="ehas-card-title">
+              <i data-lucide="calendar" style="width:20px;height:20px;color:var(--ehas-primary);"></i>
+              My Examination Schedule & Seating Allotment
+            </h3>
+            <div class="ehas-card-subtitle">Verified hall venue and individual seat assignment details</div>
+          </div>
+          <span class="badge bg-light text-dark border p-2">
+            2025/2026 Examination Session
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="ehas-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time Session</th>
+                <th>Course Code & Title</th>
+                <th>Examination Hall</th>
+                <th>Building Location</th>
+                <th class="text-center">Assigned Seat</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (allocations.length === 0) { %>
+                <tr>
+                  <td colspan="6" class="text-center py-5 text-muted">
+                    <i data-lucide="info" style="width:32px;height:32px;margin-bottom:0.5rem;display:inline-block;opacity:0.5;"></i>
+                    <div>No hall seating allocations have been published yet for your registered courses.</div>
+                    <small>Please check back once the faculty administrator publishes the allocation timetable.</small>
+                  </td>
+                </tr>
+              <% } else { %>
+                <% allocations.forEach(a => { %>
+                  <tr>
+                    <td>
+                      <strong class="text-dark"><%= new Date(a.exam_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %></strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border px-2 py-1"><%= a.exam_time %></span>
+                    </td>
+                    <td>
+                      <strong style="color:var(--ehas-primary); font-size:1rem;"><%= a.course_code %></strong>
+                      <div class="text-muted" style="font-size:0.8125rem;"><%= a.course_title %></div>
+                    </td>
+                    <td>
+                      <span class="ehas-badge ehas-badge-allocated fs-6 px-3 py-1">
+                        <i data-lucide="building" style="width:14px;height:14px;"></i>
+                        <%= a.hall_name %>
+                      </span>
+                    </td>
+                    <td>
+                      <span class="text-muted"><i data-lucide="map-pin" style="width:13px;height:13px;display:inline;"></i> <%= a.location || 'Faculty Main Campus' %></span>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-primary text-white fs-5 px-3 py-2 fw-bold" style="background-color: var(--ehas-primary) !important; border-radius: var(--ehas-radius);">
+                        Seat <%= a.seat_no %>
+                      </span>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

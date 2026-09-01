@@ -1,0 +1,307 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-admin') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Page Header -->
+      <div class="ehas-page-header">
+        <div>
+          <h1 class="ehas-page-title">Manage Students</h1>
+          <p class="ehas-page-subtitle">Configure student directory, matriculation records, and portal login access</p>
+        </div>
+        <div class="ehas-page-actions">
+          <button class="ehas-btn ehas-btn-primary" data-bs-toggle="modal" data-bs-target="#studentModal" onclick="resetForm()">
+            <i data-lucide="user-plus"></i>
+            <span>Add Student</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Card with Filter Toolbar & Table -->
+      <div class="ehas-card">
+        <div class="ehas-card-header">
+          <div class="ehas-toolbar w-100 mb-0">
+            <div class="ehas-search-input-group">
+              <i data-lucide="search"></i>
+              <input type="text" id="studentSearch" placeholder="Search by name, matric number, or email...">
+            </div>
+            
+            <div class="ehas-filter-group">
+              <select id="levelFilter" class="form-select form-select-sm" style="width: auto; min-width: 140px; border-radius: var(--ehas-radius);">
+                <option value="">All Levels</option>
+                <option value="100">100 Level</option>
+                <option value="200">200 Level</option>
+                <option value="300">300 Level</option>
+                <option value="400">400 Level</option>
+                <option value="500">500 Level</option>
+              </select>
+
+              <span class="badge bg-light text-dark border p-2" id="studentCountBadge">
+                Loading...
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="ehas-table" id="studentsTable">
+            <thead>
+              <tr>
+                <th>Student Full Name</th>
+                <th>Matric Number</th>
+                <th>Department</th>
+                <th>Academic Level</th>
+                <th>Portal Account Email</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Add / Edit Student Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: var(--ehas-radius-lg); border: 1px solid var(--ehas-border); box-shadow: var(--ehas-shadow-xl);">
+      <div class="modal-header border-bottom px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="ehas-metric-icon primary" style="width:36px;height:36px;">
+            <i data-lucide="user" style="width:18px;height:18px;"></i>
+          </div>
+          <h5 class="modal-title fw-bold" id="modalTitle">Add New Student</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <div class="modal-body px-4 py-3">
+        <div id="modalError" class="ehas-alert ehas-alert-error" style="display:none;"></div>
+        
+        <form id="studentForm">
+          <input type="hidden" id="student_id">
+          
+          <div class="ehas-form-group">
+            <label class="ehas-label" for="full_name">Full Name</label>
+            <input type="text" id="full_name" class="ehas-input" placeholder="e.g. Blessing Udo" required>
+          </div>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="ehas-form-group">
+                <label class="ehas-label" for="matric_no">Matriculation Number</label>
+                <input type="text" id="matric_no" class="ehas-input" placeholder="e.g. CRS/20/CMP/001" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="ehas-form-group">
+                <label class="ehas-label" for="level">Academic Level</label>
+                <select id="level" class="ehas-input" required>
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300">300 Level</option>
+                  <option value="400">400 Level</option>
+                  <option value="500">500 Level</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="ehas-form-group">
+            <label class="ehas-label" for="department">Department</label>
+            <input type="text" id="department" class="ehas-input" required value="Computer Science">
+          </div>
+
+          <div class="p-3 bg-light rounded border mt-3">
+            <label class="ehas-label mb-1" for="email">Portal Access Email (Optional)</label>
+            <div class="text-muted mb-2" style="font-size:0.75rem;">Creating an account generates default password: <code>password123</code></div>
+            <input type="email" id="email" class="ehas-input" placeholder="e.g. student@unicross.edu.ng">
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-top px-4 py-3 bg-light" style="border-bottom-left-radius: var(--ehas-radius-lg); border-bottom-right-radius: var(--ehas-radius-lg);">
+        <button type="button" class="ehas-btn ehas-btn-outline" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="ehas-btn ehas-btn-primary" id="saveBtn" onclick="saveStudent()">Save Student</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let modalInstance = null;
+  let allStudents = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    modalInstance = new bootstrap.Modal(document.getElementById('studentModal'));
+    loadStudents();
+
+    document.getElementById('studentSearch').addEventListener('input', filterStudentsTable);
+    document.getElementById('levelFilter').addEventListener('change', filterStudentsTable);
+  });
+
+  async function loadStudents() {
+    try {
+      const res = await fetch('/api/students');
+      const data = await res.json();
+      if (data.success) {
+        allStudents = data.data;
+        renderStudents(allStudents);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load students data.');
+    }
+  }
+
+  function renderStudents(students) {
+    const tbody = document.querySelector('#studentsTable tbody');
+    tbody.innerHTML = '';
+    
+    document.getElementById('studentCountBadge').innerText = `${students.length} Students`;
+
+    if (students.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No matching student records found.</td></tr>';
+      return;
+    }
+
+    students.forEach(s => {
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              <div class="ehas-user-avatar" style="width:34px;height:34px;font-size:0.8rem;background:var(--ehas-primary-light);color:var(--ehas-primary);font-weight:700;">
+                ${s.full_name.charAt(0)}
+              </div>
+              <span class="fw-bold text-dark">${s.full_name}</span>
+            </div>
+          </td>
+          <td><code class="text-dark bg-light px-2 py-1 rounded">${s.matric_no}</code></td>
+          <td>${s.department}</td>
+          <td><span class="ehas-badge ehas-badge-neutral">Level ${s.level}</span></td>
+          <td>${s.email ? `<span class="text-primary">${s.email}</span>` : '<span class="text-muted fst-italic">No account</span>'}</td>
+          <td class="text-end">
+            <button class="ehas-btn ehas-btn-outline ehas-btn-sm me-1" onclick='editStudent(${JSON.stringify(s)})' title="Edit">
+              <i data-lucide="edit-3" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="ehas-btn ehas-btn-outline text-danger ehas-btn-sm" onclick="deleteStudent(${s.student_id})" title="Delete">
+              <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function filterStudentsTable() {
+    const term = document.getElementById('studentSearch').value.toLowerCase().trim();
+    const level = document.getElementById('levelFilter').value;
+
+    const filtered = allStudents.filter(s => {
+      const matchSearch = s.full_name.toLowerCase().includes(term) || 
+                          s.matric_no.toLowerCase().includes(term) || 
+                          (s.email && s.email.toLowerCase().includes(term));
+      const matchLevel = !level || s.level.toString() === level;
+      return matchSearch && matchLevel;
+    });
+
+    renderStudents(filtered);
+  }
+
+  function resetForm() {
+    document.getElementById('studentForm').reset();
+    document.getElementById('student_id').value = '';
+    document.getElementById('modalTitle').innerText = 'Add New Student';
+    document.getElementById('email').disabled = false;
+    document.getElementById('modalError').style.display = 'none';
+  }
+
+  function editStudent(s) {
+    resetForm();
+    document.getElementById('modalTitle').innerText = 'Edit Student Record';
+    document.getElementById('student_id').value = s.student_id;
+    document.getElementById('full_name').value = s.full_name;
+    document.getElementById('matric_no').value = s.matric_no;
+    document.getElementById('department').value = s.department;
+    document.getElementById('level').value = s.level;
+    document.getElementById('email').value = s.email || '';
+    document.getElementById('email').disabled = true;
+    modalInstance.show();
+  }
+
+  async function saveStudent() {
+    const errDiv = document.getElementById('modalError');
+    errDiv.style.display = 'none';
+    
+    const id = document.getElementById('student_id').value;
+    const payload = {
+      full_name: document.getElementById('full_name').value.trim(),
+      matric_no: document.getElementById('matric_no').value.trim(),
+      department: document.getElementById('department').value.trim(),
+      level: document.getElementById('level').value,
+      email: document.getElementById('email').value.trim()
+    };
+
+    if (!payload.full_name || !payload.matric_no) {
+      errDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>Please provide full name and matric number.</span>';
+      errDiv.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/api/students/${id}` : '/api/students';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        modalInstance.hide();
+        loadStudents();
+      } else {
+        errDiv.innerHTML = `<i data-lucide="alert-circle"></i><span>${data.error}</span>`;
+        errDiv.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+      }
+    } catch (e) {
+      errDiv.innerHTML = `<i data-lucide="alert-circle"></i><span>Network error.</span>`;
+      errDiv.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  async function deleteStudent(id) {
+    if (confirm('Are you sure you want to delete this student and their login portal account?')) {
+      try {
+        const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadStudents();
+        } else {
+          alert(data.error);
+        }
+      } catch (e) {
+        alert('Network error.');
+      }
+    }
+  }
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,14 @@
+<header class="ehas-navbar">
+  <div class="ehas-navbar-brand">
+    <i data-lucide="graduation-cap"></i>
+    <span>EHAS Student Portal</span>
+  </div>
+  <div class="dropdown">
+    <button class="ehas-btn ehas-btn-outline" type="button" data-bs-toggle="dropdown">
+      <i data-lucide="user"></i> <%= user ? user.username : 'Student' %>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item text-danger" href="/logout"><i data-lucide="log-out" class="me-2" style="width:16px;"></i> Logout</a></li>
+    </ul>
+  </div>
+</header>

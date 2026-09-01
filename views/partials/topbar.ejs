@@ -1,0 +1,40 @@
+<header class="ehas-topbar d-print-none">
+  <div class="ehas-topbar-left">
+    <div class="ehas-topbar-breadcrumb">
+      <i data-lucide="layout-grid" style="width:16px;height:16px;color:var(--ehas-primary);"></i>
+      <span>Portal</span>
+      <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--ehas-text-light);"></i>
+      <strong><%= typeof title !== 'undefined' ? title.split('—')[0].trim() : 'Overview' %></strong>
+    </div>
+  </div>
+
+  <div class="ehas-topbar-right">
+    <div class="ehas-session-badge d-none d-md-inline-flex">
+      <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+      <span>2025/2026 Exam Session</span>
+    </div>
+
+    <!-- User Profile Dropdown -->
+    <div class="dropdown">
+      <button class="ehas-btn ehas-btn-outline d-flex align-items-center gap-2 py-1 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 999px;">
+        <div class="ehas-user-avatar" style="width:28px;height:28px;font-size:0.75rem;background:var(--ehas-primary);">
+          <%= user && user.username ? user.username.charAt(0).toUpperCase() : 'U' %>
+        </div>
+        <span style="font-size:0.8125rem;font-weight:600;"><%= user ? user.username : 'User' %></span>
+        <i data-lucide="chevron-down" style="width:14px;height:14px;color:var(--ehas-text-muted);"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border" style="border-radius: var(--ehas-radius); min-width: 220px;">
+        <li class="px-3 py-2 border-bottom">
+          <div style="font-size:0.8125rem; font-weight:700; color:var(--ehas-text-heading);"><%= user ? user.username : 'User' %></div>
+          <div style="font-size:0.75rem; color:var(--ehas-text-muted);"><%= user ? user.role : 'Guest' %></div>
+        </li>
+        <li>
+          <a class="dropdown-item py-2 text-danger d-flex align-items-center gap-2" href="/logout">
+            <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+            <span>Sign Out</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>

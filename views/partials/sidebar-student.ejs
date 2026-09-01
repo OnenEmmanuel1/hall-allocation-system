@@ -1,0 +1,38 @@
+<aside class="ehas-sidebar d-print-none">
+  <!-- Brand Header -->
+  <div class="ehas-sidebar-header">
+    <div class="ehas-brand-icon" style="background:linear-gradient(135deg, #0D7658 0%, #059669 100%);">
+      <i data-lucide="graduation-cap" style="width:22px;height:22px;"></i>
+    </div>
+    <div class="ehas-brand-text">
+      <span class="ehas-brand-title">STUDENT HUB</span>
+      <span class="ehas-brand-subtitle">UNICROSS COMPUTING</span>
+    </div>
+  </div>
+
+  <!-- Navigation Menu -->
+  <div class="ehas-sidebar-nav">
+    <div class="ehas-nav-heading">STUDENT PORTAL</div>
+    
+    <a href="/student/dashboard" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/student/dashboard' ? 'active' : '' %>">
+      <i data-lucide="layout-dashboard"></i>
+      <span>My Seating Dashboard</span>
+    </a>
+  </div>
+
+  <!-- Sidebar Footer / Account -->
+  <div class="ehas-sidebar-footer">
+    <div class="ehas-user-card">
+      <div class="ehas-user-avatar" style="background:linear-gradient(135deg, #0D7658 0%, #10B981 100%);">
+        <%= user && user.username ? user.username.charAt(0).toUpperCase() : 'S' %>
+      </div>
+      <div class="ehas-user-info">
+        <div class="ehas-user-name"><%= user ? user.username : 'Student' %></div>
+        <div class="ehas-user-role">Undergraduate Student</div>
+      </div>
+      <a href="/logout" title="Sign Out" style="color:var(--ehas-sidebar-text); padding:4px;">
+        <i data-lucide="log-out" style="width:18px;height:18px;"></i>
+      </a>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,183 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-admin') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Page Header -->
+      <div class="ehas-page-header">
+        <div>
+          <h1 class="ehas-page-title">Allocation Reports & Seating Charts</h1>
+          <p class="ehas-page-subtitle">View, query, and print master examination seating allocations and room assignment records</p>
+        </div>
+        <div class="ehas-page-actions">
+          <button class="ehas-btn ehas-btn-outline" onclick="window.print()">
+            <i data-lucide="printer"></i>
+            <span>Print Report</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Card (Hidden in Print) -->
+      <div class="ehas-card d-print-none">
+        <div class="ehas-card-header">
+          <h3 class="ehas-card-title">
+            <i data-lucide="filter" style="width:18px;height:18px;color:var(--ehas-primary);"></i>
+            Filter Seating Records
+          </h3>
+        </div>
+        <div class="ehas-card-body">
+          <form id="filterForm" class="row g-3 align-items-end">
+            <div class="col-md-3">
+              <label class="ehas-label" for="filter_course">Course</label>
+              <select id="filter_course" class="ehas-input">
+                <option value="">All Courses</option>
+                <% courses.forEach(c => { %>
+                  <option value="<%= c.course_id %>"><%= c.course_code %></option>
+                <% }) %>
+              </select>
+            </div>
+            
+            <div class="col-md-3">
+              <label class="ehas-label" for="filter_hall">Examination Hall</label>
+              <select id="filter_hall" class="ehas-input">
+                <option value="">All Venues</option>
+                <% halls.forEach(h => { %>
+                  <option value="<%= h.hall_id %>"><%= h.hall_name %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="ehas-label" for="filter_date">Exam Date</label>
+              <input type="date" id="filter_date" class="ehas-input">
+            </div>
+
+            <div class="col-md-3">
+              <button type="button" class="ehas-btn ehas-btn-primary w-100 py-2" onclick="loadReport()">
+                <i data-lucide="search"></i>
+                <span>Apply Filters</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Report Table Card -->
+      <div class="ehas-card">
+        <div class="ehas-card-header">
+          <div>
+            <h3 class="ehas-card-title">Seating Arrangement Master List</h3>
+            <div class="ehas-card-subtitle" id="reportSubtitle">All assigned seating allocations</div>
+          </div>
+          <span class="badge bg-light text-dark border p-2" id="reportCountBadge">
+            Loading...
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="ehas-table" id="reportTable">
+            <thead>
+              <tr>
+                <th>Exam Date & Time</th>
+                <th>Course</th>
+                <th>Student Full Name</th>
+                <th>Matriculation No</th>
+                <th>Department & Level</th>
+                <th>Assigned Hall</th>
+                <th>Seat No</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="7" class="text-center py-4 text-muted">Loading seating records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    loadReport();
+  });
+
+  async function loadReport() {
+    const course_id = document.getElementById('filter_course').value;
+    const hall_id = document.getElementById('filter_hall').value;
+    const exam_date = document.getElementById('filter_date').value;
+
+    let url = '/api/allocations/report?';
+    const params = new URLSearchParams();
+    if (course_id) params.append('course_id', course_id);
+    if (hall_id) params.append('hall_id', hall_id);
+    if (exam_date) params.append('exam_date', exam_date);
+    url += params.toString();
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      const tbody = document.querySelector('#reportTable tbody');
+      tbody.innerHTML = '';
+      
+      if (data.success) {
+        document.getElementById('reportCountBadge').innerText = `${data.data.length} Allocated Students`;
+
+        if (data.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No allocation records found matching the specified filters.</td></tr>';
+          return;
+        }
+        
+        data.data.forEach(r => {
+          const date = new Date(r.exam_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          tbody.innerHTML += `
+            <tr>
+              <td>
+                <div class="fw-bold text-dark">${date}</div>
+                <div class="text-muted" style="font-size:0.75rem;">${r.exam_time}</div>
+              </td>
+              <td>
+                <strong style="color:var(--ehas-primary); font-size:0.95rem;">${r.course_code}</strong>
+              </td>
+              <td>
+                <span class="fw-bold text-dark">${r.full_name}</span>
+              </td>
+              <td>
+                <code class="text-dark bg-light px-2 py-1 rounded">${r.matric_no}</code>
+              </td>
+              <td>
+                <div style="font-size:0.85rem;">${r.student_dept}</div>
+                <div class="text-muted" style="font-size:0.75rem;">Level ${r.student_level}</div>
+              </td>
+              <td>
+                <span class="ehas-badge ehas-badge-neutral fw-bold">
+                  <i data-lucide="building" style="width:12px;height:12px;"></i> ${r.hall_name}
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1 fw-bold">
+                  #${r.seat_no}
+                </span>
+              </td>
+            </tr>
+          `;
+        });
+        if (window.lucide) lucide.createIcons();
+      } else {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">${data.error}</td></tr>`;
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load allocation report data.');
+    }
+  }
+</script>
+
+<%- include('../partials/footer') %>

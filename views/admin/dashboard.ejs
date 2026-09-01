@@ -1,0 +1,253 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-admin') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Welcome Hero Banner -->
+      <div class="ehas-hero-dashboard">
+        <div class="ehas-hero-content">
+          <div class="ehas-hero-badge">
+            <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+            <span>Faculty Examination Operations</span>
+          </div>
+          <h2>Welcome back, <%= user ? user.username.split('@')[0] : 'Administrator' %></h2>
+          <p>
+            Manage computer science examination seating allocations, monitor venue capacities, and distribute verified seating assignments seamlessly across UNICROSS computing halls.
+          </p>
+        </div>
+        <div class="ehas-hero-actions d-none d-lg-flex">
+          <a href="/admin/allocations" class="ehas-btn ehas-btn-white">
+            <i data-lucide="play-circle"></i>
+            <span>Run Allocation Engine</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI Metrics Grid -->
+      <div class="ehas-metrics-grid">
+        <div class="ehas-metric-card">
+          <div class="ehas-metric-info">
+            <span class="ehas-metric-label">Enrolled Students</span>
+            <span class="ehas-metric-value"><%= stats.totalStudents %></span>
+            <div class="ehas-metric-subtext">
+              <span class="text-success fw-bold"><i data-lucide="check-circle" style="width:13px;height:13px;display:inline;"></i> Verified</span>
+              <span>across all levels</span>
+            </div>
+          </div>
+          <div class="ehas-metric-icon primary">
+            <i data-lucide="users" style="width:24px;height:24px;"></i>
+          </div>
+        </div>
+
+        <div class="ehas-metric-card">
+          <div class="ehas-metric-info">
+            <span class="ehas-metric-label">Active Halls</span>
+            <span class="ehas-metric-value"><%= stats.totalHalls %></span>
+            <div class="ehas-metric-subtext">
+              <span class="text-primary fw-bold"><%= halls.reduce((sum, h) => sum + h.capacity, 0) %></span>
+              <span>total seat capacity</span>
+            </div>
+          </div>
+          <div class="ehas-metric-icon success">
+            <i data-lucide="building" style="width:24px;height:24px;"></i>
+          </div>
+        </div>
+
+        <div class="ehas-metric-card">
+          <div class="ehas-metric-info">
+            <span class="ehas-metric-label">Registered Courses</span>
+            <span class="ehas-metric-value"><%= stats.totalCourses %></span>
+            <div class="ehas-metric-subtext">
+              <span>Departmental & faculty</span>
+            </div>
+          </div>
+          <div class="ehas-metric-icon warning">
+            <i data-lucide="book-open" style="width:24px;height:24px;"></i>
+          </div>
+        </div>
+
+        <div class="ehas-metric-card">
+          <div class="ehas-metric-info">
+            <span class="ehas-metric-label">Exam Schedules</span>
+            <span class="ehas-metric-value"><%= stats.totalSchedules %></span>
+            <div class="ehas-metric-subtext">
+              <% if (stats.pendingSchedules > 0) { %>
+                <span class="text-warning fw-bold"><%= stats.pendingSchedules %> Pending</span>
+              <% } else { %>
+                <span class="text-success fw-bold">All Allocated</span>
+              <% } %>
+            </div>
+          </div>
+          <div class="ehas-metric-icon info">
+            <i data-lucide="calendar-clock" style="width:24px;height:24px;"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Two-Column Content -->
+      <div class="row g-4">
+        
+        <!-- Left: Upcoming Exam Schedules -->
+        <div class="col-lg-8">
+          <div class="ehas-card h-100">
+            <div class="ehas-card-header">
+              <div>
+                <h3 class="ehas-card-title">
+                  <i data-lucide="calendar" style="width:20px;height:20px;color:var(--ehas-primary);"></i>
+                  Upcoming Exam Schedules
+                </h3>
+                <div class="ehas-card-subtitle">Current session scheduled examination timetable</div>
+              </div>
+              <a href="/admin/schedules" class="ehas-btn ehas-btn-outline ehas-btn-sm">
+                <span>View All Schedules</span>
+                <i data-lucide="arrow-right"></i>
+              </a>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="ehas-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Course Code & Title</th>
+                    <th>Level</th>
+                    <th>Enrolled</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (!recentSchedules || recentSchedules.length === 0) { %>
+                    <tr>
+                      <td colspan="6" class="text-center py-4 text-muted">No scheduled examinations found.</td>
+                    </tr>
+                  <% } else { %>
+                    <% recentSchedules.forEach(s => { %>
+                      <tr>
+                        <td>
+                          <div class="fw-bold"><%= new Date(s.exam_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %></div>
+                          <div class="text-muted" style="font-size:0.75rem;"><%= s.exam_time %></div>
+                        </td>
+                        <td>
+                          <div class="fw-bold" style="color:var(--ehas-primary);"><%= s.course_code %></div>
+                          <div class="text-muted" style="font-size:0.8rem;"><%= s.course_title %></div>
+                        </td>
+                        <td>
+                          <span class="ehas-badge ehas-badge-neutral">L<%= s.level %></span>
+                        </td>
+                        <td>
+                          <strong><%= s.enrolled_count %></strong> students
+                        </td>
+                        <td>
+                          <% if (s.status === 'allocated') { %>
+                            <span class="ehas-badge ehas-badge-allocated">
+                              <i data-lucide="check" style="width:12px;height:12px;"></i> Allocated
+                            </span>
+                          <% } else { %>
+                            <span class="ehas-badge ehas-badge-pending">
+                              <i data-lucide="clock" style="width:12px;height:12px;"></i> Pending
+                            </span>
+                          <% } %>
+                        </td>
+                        <td class="text-end">
+                          <a href="/admin/allocations" class="ehas-btn ehas-btn-outline ehas-btn-sm">
+                            <i data-lucide="cpu" style="width:14px;height:14px;"></i>
+                            <span><%= s.status === 'allocated' ? 'Manage' : 'Allocate' %></span>
+                          </a>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Venue Capacity & Quick Actions -->
+        <div class="col-lg-4">
+          
+          <!-- Allocation Engine Status Card -->
+          <div class="ehas-card mb-4">
+            <div class="ehas-card-header">
+              <h3 class="ehas-card-title">
+                <i data-lucide="cpu" style="width:18px;height:18px;color:var(--ehas-primary);"></i>
+                Allocation Status
+              </h3>
+            </div>
+            <div class="ehas-card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted fw-semibold" style="font-size:0.8125rem;">Overall Completion</span>
+                <% 
+                  const totalSched = stats.totalSchedules || 1;
+                  const allocPercent = Math.round((stats.allocatedSchedules / totalSched) * 100);
+                %>
+                <span class="fw-bold" style="color:var(--ehas-primary);"><%= allocPercent %>%</span>
+              </div>
+              <div class="progress mb-4" style="height: 10px; border-radius: 999px; background-color: var(--ehas-border-light);">
+                <div class="progress-bar" role="progressbar" style="width: <%= allocPercent %>%; background: linear-gradient(90deg, #7A1C28 0%, #0D7658 100%); border-radius: 999px;"></div>
+              </div>
+
+              <div class="d-flex justify-content-between p-3 bg-light rounded mb-3" style="border: 1px solid var(--ehas-border);">
+                <div>
+                  <div style="font-size:0.75rem; color:var(--ehas-text-muted); text-transform:uppercase; font-weight:600;">Allocated</div>
+                  <div style="font-size:1.25rem; font-weight:800; color:var(--ehas-success);"><%= stats.allocatedSchedules %></div>
+                </div>
+                <div class="border-end"></div>
+                <div>
+                  <div style="font-size:0.75rem; color:var(--ehas-text-muted); text-transform:uppercase; font-weight:600;">Pending</div>
+                  <div style="font-size:1.25rem; font-weight:800; color:var(--ehas-warning);"><%= stats.pendingSchedules %></div>
+                </div>
+                <div class="border-end"></div>
+                <div>
+                  <div style="font-size:0.75rem; color:var(--ehas-text-muted); text-transform:uppercase; font-weight:600;">Assignments</div>
+                  <div style="font-size:1.25rem; font-weight:800; color:var(--ehas-text-heading);"><%= stats.totalAllocations %></div>
+                </div>
+              </div>
+
+              <a href="/admin/allocations" class="ehas-btn ehas-btn-primary w-100 py-2">
+                <i data-lucide="play"></i>
+                <span>Open Allocation Engine</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Examination Halls Overview -->
+          <div class="ehas-card">
+            <div class="ehas-card-header">
+              <h3 class="ehas-card-title">
+                <i data-lucide="building" style="width:18px;height:18px;color:var(--ehas-primary);"></i>
+                Configured Venues
+              </h3>
+              <a href="/admin/halls" class="text-muted" style="font-size:0.8125rem; font-weight:600;">Manage</a>
+            </div>
+            <div class="ehas-card-body p-0">
+              <ul class="list-group list-group-flush">
+                <% halls.forEach(h => { %>
+                  <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 border-0 border-bottom">
+                    <div>
+                      <div class="fw-bold text-dark"><%= h.hall_name %></div>
+                      <div class="text-muted" style="font-size:0.75rem;"><i data-lucide="map-pin" style="width:12px;height:12px;display:inline;"></i> <%= h.location || 'Faculty Building' %></div>
+                    </div>
+                    <span class="ehas-badge ehas-badge-primary">
+                      <%= h.capacity %> Seats
+                    </span>
+                  </li>
+                <% }) %>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

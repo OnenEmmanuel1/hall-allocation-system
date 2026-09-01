@@ -1,0 +1,149 @@
+<%- include('partials/header') %>
+
+<div class="ehas-auth-container">
+  
+  <!-- Left Side: Brand & Feature Showcase (Desktop Web) -->
+  <div class="ehas-auth-hero d-none d-lg-flex">
+    <div class="ehas-auth-hero-branding">
+      <div class="ehas-brand-icon" style="width:48px;height:48px;">
+        <i data-lucide="building-2" style="width:26px;height:26px;"></i>
+      </div>
+      <div>
+        <h4 style="color:white; margin:0; font-weight:800; letter-spacing:0.04em;">EHAS</h4>
+        <div style="color:rgba(255,255,255,0.7); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em;">UNICROSS FACULTY OF COMPUTING</div>
+      </div>
+    </div>
+
+    <div class="ehas-auth-hero-center">
+      <h1>Examination Hall Allocation System</h1>
+      <p>
+        An automated, constraint-driven platform designed to eliminate venue conflicts, enforce hall capacity limits, and deliver real-time seating allocations for students and faculty.
+      </p>
+
+      <div class="ehas-auth-feature-list">
+        <div class="ehas-auth-feature-item">
+          <i data-lucide="check-circle-2"></i>
+          <span>Automated clash prevention & seat number assignment</span>
+        </div>
+        <div class="ehas-auth-feature-item">
+          <i data-lucide="check-circle-2"></i>
+          <span>Multi-hall capacity balancing & overflow management</span>
+        </div>
+        <div class="ehas-auth-feature-item">
+          <i data-lucide="check-circle-2"></i>
+          <span>Instant student timetable & printable examination slips</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ehas-auth-hero-footer">
+      <div>&copy; 2026 Faculty of Computing, University of Cross River State (UNICROSS)</div>
+    </div>
+  </div>
+
+  <!-- Right Side: Authentication Form Card -->
+  <div class="ehas-auth-form-side">
+    <div class="ehas-auth-card">
+      <div class="text-center mb-4">
+        <div class="ehas-brand-icon mx-auto mb-3" style="width:52px;height:52px;">
+          <i data-lucide="lock" style="width:24px;height:24px;"></i>
+        </div>
+        <h2 class="fw-bold" style="color:var(--ehas-text-heading); font-size:1.75rem;">Sign In to Portal</h2>
+        <p class="text-muted" style="font-size:0.875rem;">Access administrator controls or student seating allotments</p>
+      </div>
+
+      <div id="login-error" class="ehas-alert ehas-alert-error" style="display:none;"></div>
+
+      <form id="login-form" novalidate>
+        <div class="ehas-form-group">
+          <label for="login-email" class="ehas-label">Institutional Email / Username</label>
+          <div class="position-relative">
+            <input type="text" id="login-email" class="ehas-input" placeholder="e.g. admin@unicross.edu.ng" required autofocus>
+          </div>
+        </div>
+
+        <div class="ehas-form-group mb-4">
+          <label for="login-password" class="ehas-label">Password</label>
+          <div class="position-relative">
+            <input type="password" id="login-password" class="ehas-input" placeholder="Enter your password" required>
+          </div>
+        </div>
+
+        <button type="submit" class="ehas-btn ehas-btn-primary w-100 py-3 mb-3" id="login-submit-btn" style="font-size:0.95rem;">
+          <span>Sign In to Portal</span>
+          <i data-lucide="arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Quick Demo Credentials Fill -->
+      <div class="p-3 bg-light rounded border mt-4">
+        <div class="text-muted fw-bold mb-2 text-uppercase" style="font-size:0.7rem; letter-spacing:0.05em;">Quick Demo Credentials:</div>
+        <div class="d-flex gap-2">
+          <button type="button" class="ehas-btn ehas-btn-outline ehas-btn-sm flex-fill" onclick="fillCreds('admin@unicross.edu.ng', 'password123')">
+            <i data-lucide="shield"></i> Admin
+          </button>
+          <button type="button" class="ehas-btn ehas-btn-outline ehas-btn-sm flex-fill" onclick="fillCreds('student1@unicross.edu.ng', 'password123')">
+            <i data-lucide="graduation-cap"></i> Student 1
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function fillCreds(email, pass) {
+    document.getElementById('login-email').value = email;
+    document.getElementById('login-password').value = pass;
+    document.getElementById('login-error').style.display = 'none';
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errDiv = document.getElementById('login-error');
+    errDiv.style.display = 'none';
+
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!email || !password) {
+      errDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>Please provide your institutional email and password.</span>';
+      errDiv.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    const submitBtn = document.getElementById('login-submit-btn');
+    const originalBtnContent = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span><span>Authenticating...</span>';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        window.location.href = data.redirect;
+      } else {
+        errDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>' + (data.error || 'Authentication failed. Please check credentials.') + '</span>';
+        errDiv.style.display = 'flex';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnContent;
+        if (window.lucide) lucide.createIcons();
+      }
+    } catch (err) {
+      errDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>Network error. Please try again.</span>';
+      errDiv.style.display = 'flex';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnContent;
+      if (window.lucide) lucide.createIcons();
+    }
+  });
+</script>
+
+<%- include('partials/footer') %>

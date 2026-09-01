@@ -1,0 +1,298 @@
+<%- include('../partials/header') %>
+
+<div class="ehas-app">
+  <%- include('../partials/sidebar-admin') %>
+
+  <div class="ehas-main-wrapper">
+    <%- include('../partials/topbar') %>
+
+    <main class="ehas-content">
+      
+      <!-- Page Header -->
+      <div class="ehas-page-header">
+        <div>
+          <h1 class="ehas-page-title">Manage Exam Schedules</h1>
+          <p class="ehas-page-subtitle">Configure examination dates, time sessions, and course scheduling</p>
+        </div>
+        <div class="ehas-page-actions">
+          <button class="ehas-btn ehas-btn-primary" data-bs-toggle="modal" data-bs-target="#scheduleModal" onclick="resetForm()">
+            <i data-lucide="plus-circle"></i>
+            <span>Add Schedule</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Card with Table -->
+      <div class="ehas-card">
+        <div class="ehas-card-header">
+          <div class="ehas-toolbar w-100 mb-0">
+            <div class="ehas-search-input-group">
+              <i data-lucide="search"></i>
+              <input type="text" id="scheduleSearch" placeholder="Search by course code, title, or exam date...">
+            </div>
+            
+            <div class="ehas-filter-group">
+              <select id="statusFilter" class="form-select form-select-sm" style="width: auto; min-width: 140px; border-radius: var(--ehas-radius);">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="allocated">Allocated</option>
+              </select>
+
+              <span class="badge bg-light text-dark border p-2" id="scheduleCountBadge">
+                Loading...
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="ehas-table" id="schedulesTable">
+            <thead>
+              <tr>
+                <th>Exam Date</th>
+                <th>Time Session / Slot</th>
+                <th>Course Details</th>
+                <th>Enrolled Candidates</th>
+                <th>Allocation Status</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Add / Edit Schedule Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: var(--ehas-radius-lg); border: 1px solid var(--ehas-border); box-shadow: var(--ehas-shadow-xl);">
+      <div class="modal-header border-bottom px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="ehas-metric-icon info" style="width:36px;height:36px;">
+            <i data-lucide="calendar" style="width:18px;height:18px;"></i>
+          </div>
+          <h5 class="modal-title fw-bold" id="modalTitle">Schedule Examination</h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <div class="modal-body px-4 py-3">
+        <div id="modalError" class="ehas-alert ehas-alert-error" style="display:none;"></div>
+        
+        <form id="scheduleForm">
+          <input type="hidden" id="schedule_id">
+          
+          <div class="ehas-form-group">
+            <label class="ehas-label" for="course_id">Course</label>
+            <select id="course_id" class="ehas-input" required>
+              <option value="">Select Examination Course...</option>
+              <% if (courses && courses.length) { %>
+                <% courses.forEach(c => { %>
+                  <option value="<%= c.course_id %>"><%= c.course_code %> — <%= c.course_title %></option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="ehas-form-group">
+                <label class="ehas-label" for="exam_date">Examination Date</label>
+                <input type="date" id="exam_date" class="ehas-input" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="ehas-form-group">
+                <label class="ehas-label" for="exam_time">Time Slot</label>
+                <select id="exam_time" class="ehas-input" required>
+                  <option value="09:00 AM - 12:00 PM">09:00 AM - 12:00 PM (Morning)</option>
+                  <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM (Afternoon)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-top px-4 py-3 bg-light" style="border-bottom-left-radius: var(--ehas-radius-lg); border-bottom-right-radius: var(--ehas-radius-lg);">
+        <button type="button" class="ehas-btn ehas-btn-outline" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="ehas-btn ehas-btn-primary" id="saveBtn" onclick="saveSchedule()">Save Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let modalInstance = null;
+  let allSchedules = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    modalInstance = new bootstrap.Modal(document.getElementById('scheduleModal'));
+    loadSchedules();
+
+    document.getElementById('scheduleSearch').addEventListener('input', filterSchedulesTable);
+    document.getElementById('statusFilter').addEventListener('change', filterSchedulesTable);
+  });
+
+  async function loadSchedules() {
+    try {
+      const res = await fetch('/api/schedules');
+      const data = await res.json();
+      if (data.success) {
+        allSchedules = data.data;
+        renderSchedules(allSchedules);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load schedules.');
+    }
+  }
+
+  function renderSchedules(schedules) {
+    const tbody = document.querySelector('#schedulesTable tbody');
+    tbody.innerHTML = '';
+    
+    document.getElementById('scheduleCountBadge').innerText = `${schedules.length} Schedules`;
+
+    if (schedules.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No matching exam schedules found.</td></tr>';
+      return;
+    }
+
+    schedules.forEach(s => {
+      const formattedDate = new Date(s.exam_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const statusBadge = s.status === 'allocated' 
+        ? `<span class="ehas-badge ehas-badge-allocated"><i data-lucide="check" style="width:12px;height:12px;"></i> Allocated</span>`
+        : `<span class="ehas-badge ehas-badge-pending"><i data-lucide="clock" style="width:12px;height:12px;"></i> Pending</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong class="text-dark">${formattedDate}</strong></td>
+          <td>
+            <span class="badge bg-light text-dark border px-2 py-1">${s.exam_time}</span>
+          </td>
+          <td>
+            <strong style="color:var(--ehas-primary); font-size:0.95rem;">${s.course_code}</strong>
+            <div class="text-muted" style="font-size:0.8rem;">${s.course_title}</div>
+          </td>
+          <td>
+            <strong class="text-dark">${s.enrolled_count}</strong> students
+          </td>
+          <td>${statusBadge}</td>
+          <td class="text-end">
+            <button class="ehas-btn ehas-btn-outline ehas-btn-sm me-1" onclick='editSchedule(${JSON.stringify(s)})' title="Edit">
+              <i data-lucide="edit-3" style="width:14px;height:14px;"></i>
+            </button>
+            <button class="ehas-btn ehas-btn-outline text-danger ehas-btn-sm" onclick="deleteSchedule(${s.schedule_id})" title="Delete">
+              <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function filterSchedulesTable() {
+    const term = document.getElementById('scheduleSearch').value.toLowerCase().trim();
+    const status = document.getElementById('statusFilter').value;
+
+    const filtered = allSchedules.filter(s => {
+      const matchSearch = s.course_code.toLowerCase().includes(term) || 
+                          s.course_title.toLowerCase().includes(term) || 
+                          s.exam_date.toLowerCase().includes(term);
+      const matchStatus = !status || s.status === status;
+      return matchSearch && matchStatus;
+    });
+
+    renderSchedules(filtered);
+  }
+
+  function resetForm() {
+    document.getElementById('scheduleForm').reset();
+    document.getElementById('schedule_id').value = '';
+    document.getElementById('modalTitle').innerText = 'Schedule Examination';
+    document.getElementById('modalError').style.display = 'none';
+  }
+
+  function editSchedule(s) {
+    resetForm();
+    document.getElementById('modalTitle').innerText = 'Edit Exam Schedule';
+    document.getElementById('schedule_id').value = s.schedule_id;
+    document.getElementById('course_id').value = s.course_id;
+    
+    const dateObj = new Date(s.exam_date);
+    document.getElementById('exam_date').value = dateObj.toISOString().split('T')[0];
+    document.getElementById('exam_time').value = s.exam_time;
+    modalInstance.show();
+  }
+
+  async function saveSchedule() {
+    const errDiv = document.getElementById('modalError');
+    errDiv.style.display = 'none';
+    
+    const id = document.getElementById('schedule_id').value;
+    const payload = {
+      course_id: document.getElementById('course_id').value,
+      exam_date: document.getElementById('exam_date').value,
+      exam_time: document.getElementById('exam_time').value
+    };
+
+    if (!payload.course_id || !payload.exam_date || !payload.exam_time) {
+      errDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>Please select course, exam date, and time slot.</span>';
+      errDiv.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/api/schedules/${id}` : '/api/schedules';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        modalInstance.hide();
+        loadSchedules();
+      } else {
+        errDiv.innerHTML = `<i data-lucide="alert-circle"></i><span>${data.error}</span>`;
+        errDiv.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+      }
+    } catch (e) {
+      errDiv.innerHTML = `<i data-lucide="alert-circle"></i><span>Network error.</span>`;
+      errDiv.style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  async function deleteSchedule(id) {
+    if (confirm('Are you sure you want to delete this schedule? Any assigned seat allocations will also be deleted.')) {
+      try {
+        const res = await fetch(`/api/schedules/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadSchedules();
+        } else {
+          alert(data.error);
+        }
+      } catch (e) {
+        alert('Network error.');
+      }
+    }
+  }
+</script>
+
+<%- include('../partials/footer') %>

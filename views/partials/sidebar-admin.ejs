@@ -1,0 +1,72 @@
+<aside class="ehas-sidebar d-print-none">
+  <!-- Brand Header -->
+  <div class="ehas-sidebar-header">
+    <div class="ehas-brand-icon">
+      <i data-lucide="building-2" style="width:22px;height:22px;"></i>
+    </div>
+    <div class="ehas-brand-text">
+      <span class="ehas-brand-title">EHAS PORTAL</span>
+      <span class="ehas-brand-subtitle">UNICROSS COMPUTING</span>
+    </div>
+  </div>
+
+  <!-- Navigation Menu -->
+  <div class="ehas-sidebar-nav">
+    <div class="ehas-nav-heading">MAIN MENU</div>
+    
+    <a href="/admin/dashboard" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/dashboard' ? 'active' : '' %>">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <div class="ehas-nav-heading">RESOURCES & DATA</div>
+
+    <a href="/admin/halls" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/halls' ? 'active' : '' %>">
+      <i data-lucide="building"></i>
+      <span>Examination Halls</span>
+    </a>
+
+    <a href="/admin/courses" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/courses' ? 'active' : '' %>">
+      <i data-lucide="book-open"></i>
+      <span>Courses & Enrollment</span>
+    </a>
+
+    <a href="/admin/students" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/students' ? 'active' : '' %>">
+      <i data-lucide="users"></i>
+      <span>Students Database</span>
+    </a>
+
+    <a href="/admin/schedules" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/schedules' ? 'active' : '' %>">
+      <i data-lucide="calendar-clock"></i>
+      <span>Exam Schedules</span>
+    </a>
+
+    <div class="ehas-nav-heading">ALLOCATION SYSTEM</div>
+
+    <a href="/admin/allocations" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/allocations' ? 'active' : '' %>">
+      <i data-lucide="cpu"></i>
+      <span>Run Allocation Engine</span>
+    </a>
+
+    <a href="/admin/reports" class="ehas-nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/admin/reports' ? 'active' : '' %>">
+      <i data-lucide="file-spreadsheet"></i>
+      <span>Seating Reports</span>
+    </a>
+  </div>
+
+  <!-- Sidebar Footer / Account -->
+  <div class="ehas-sidebar-footer">
+    <div class="ehas-user-card">
+      <div class="ehas-user-avatar" style="background:linear-gradient(135deg, #7A1C28 0%, #B91C1C 100%);">
+        <%= user && user.username ? user.username.charAt(0).toUpperCase() : 'A' %>
+      </div>
+      <div class="ehas-user-info">
+        <div class="ehas-user-name"><%= user ? user.username : 'Administrator' %></div>
+        <div class="ehas-user-role">System Administrator</div>
+      </div>
+      <a href="/logout" title="Sign Out" style="color:var(--ehas-sidebar-text); padding:4px;" class="text-hover-white">
+        <i data-lucide="log-out" style="width:18px;height:18px;"></i>
+      </a>
+    </div>
+  </div>
+</aside>
