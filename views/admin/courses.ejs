@@ -135,7 +135,7 @@
       <div class="modal-header border-bottom px-4 py-3">
         <div>
           <h5 class="modal-title fw-bold">Enroll Students: <span id="enrollCourseCode" class="text-primary"></span></h5>
-          <div class="text-muted" style="font-size:0.8125rem;">Select students eligible to take this examination</div>
+          <div class="text-muted" style="font-size:0.8125rem;">Checked students are enrolled. Uncheck a student to remove them from the course.</div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -183,7 +183,7 @@
         <button type="button" class="ehas-btn ehas-btn-outline" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="ehas-btn ehas-btn-primary" onclick="submitEnroll()">
           <i data-lucide="user-check"></i>
-          <span>Save Enrollments</span>
+          <span>Save Course Roster</span>
         </button>
       </div>
     </div>
@@ -368,7 +368,7 @@
     }
   }
 
-  function openEnroll(courseId, courseCode) {
+  async function openEnroll(courseId, courseCode) {
     document.getElementById('enroll_course_id').value = courseId;
     document.getElementById('enrollCourseCode').innerText = courseCode;
     document.getElementById('enrollError').style.display = 'none';
@@ -376,8 +376,18 @@
     
     document.querySelectorAll('.student-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.student-enroll-row').forEach(r => r.style.display = '');
-    
     enrollModal.show();
+    try {
+      const res = await fetch(`/api/courses/${courseId}/enroll`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Could not load current enrollments.');
+      const enrolled = new Set(data.studentIds.map(Number));
+      document.querySelectorAll('.student-check').forEach(cb => cb.checked = enrolled.has(Number(cb.value)));
+    } catch (e) {
+      const errDiv = document.getElementById('enrollError');
+      errDiv.textContent = e.message || 'Could not load current enrollments.';
+      errDiv.style.display = 'flex';
+    }
   }
 
   async function submitEnroll() {
@@ -388,13 +398,6 @@
     const checked = document.querySelectorAll('.student-check:checked');
     const studentIds = Array.from(checked).map(cb => parseInt(cb.value));
     
-    if (studentIds.length === 0) {
-      errDiv.innerHTML = `<i data-lucide="alert-circle"></i><span>Please select at least one student to enroll.</span>`;
-      errDiv.style.display = 'flex';
-      if (window.lucide) lucide.createIcons();
-      return;
-    }
-
     try {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: 'POST',

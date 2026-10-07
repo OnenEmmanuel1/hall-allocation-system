@@ -91,27 +91,68 @@ router.delete('/:id', isAdmin, async (req, res) => {
   }
 });
 
-/* POST /api/courses/:id/enroll — enroll student(s) in course */
+/* POST /api/courses/:id/enroll — replace the course roster (supports enrol and de-enrol) */
+router.get('/:id/enroll', isAdmin, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT student_id FROM tbl_student_courses WHERE course_id = ?', [req.params.id]
+    );
+    res.json({ success: true, studentIds: rows.map(row => row.student_id) });
+  } catch (err) {
+    console.error('Get enrollment error:', err);
+    res.status(500).json({ success: false, error: 'Could not load course roster.' });
+  }
+});
+
 router.post('/:id/enroll', isAdmin, async (req, res) => {
+  const connection = await db.getConnection();
   try {
     const courseId = req.params.id;
-    const { studentIds } = req.body; // array of student_ids
+    const { studentIds } = req.body;
 
-    if (!Array.isArray(studentIds) || studentIds.length === 0) {
-      return res.json({ success: false, error: 'No students selected.' });
+    if (!Array.isArray(studentIds) || studentIds.some(id => !Number.isInteger(Number(id)) || Number(id) < 1)) {
+      return res.status(400).json({ success: false, error: 'Provide a valid student list.' });
     }
 
-    for (const sId of studentIds) {
-      await db.query(
-        'INSERT IGNORE INTO tbl_student_courses (student_id, course_id) VALUES (?, ?)',
-        [sId, courseId]
-      );
+    const ids = [...new Set(studentIds.map(Number))];
+    await connection.beginTransaction();
+    const [courses] = await connection.query('SELECT course_id FROM tbl_courses WHERE course_id = ? FOR UPDATE', [courseId]);
+    if (!courses.length) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, error: 'Course not found.' });
     }
 
-    res.json({ success: true, message: 'Students enrolled successfully.' });
+    if (ids.length) {
+      const placeholders = ids.map(() => '?').join(',');
+      const [valid] = await connection.query(`SELECT student_id FROM tbl_students WHERE student_id IN (${placeholders})`, ids);
+      if (valid.length !== ids.length) {
+        await connection.rollback();
+        return res.status(400).json({ success: false, error: 'One or more selected students do not exist.' });
+      }
+    }
+
+    const [currentRows] = await connection.query('SELECT student_id FROM tbl_student_courses WHERE course_id = ?', [courseId]);
+    const currentIds = currentRows.map(row => row.student_id);
+    const changed = currentIds.length !== ids.length || currentIds.some(id => !ids.includes(id));
+    if (changed) {
+      // Roster changes invalidate this course's seating plan. Require a fresh allocation.
+      await connection.query('DELETE FROM tbl_allocations WHERE schedule_id IN (SELECT schedule_id FROM tbl_exam_schedule WHERE course_id = ?)', [courseId]);
+      await connection.query("UPDATE tbl_exam_schedule SET status = 'pending' WHERE course_id = ?", [courseId]);
+      await connection.query('DELETE FROM tbl_student_courses WHERE course_id = ?', [courseId]);
+      if (ids.length) {
+        const values = ids.map(() => '(?, ?)').join(',');
+        await connection.query(`INSERT INTO tbl_student_courses (student_id, course_id) VALUES ${values}`, ids.flatMap(id => [id, courseId]));
+      }
+    }
+    await connection.commit();
+
+    res.json({ success: true, message: `Course roster saved with ${ids.length} student(s).${changed ? ' Existing allocations were cleared; rerun allocation.' : ''}` });
   } catch (err) {
+    await connection.rollback();
     console.error('Enroll error:', err);
     res.status(500).json({ success: false, error: 'Server error.' });
+  } finally {
+    connection.release();
   }
 });
 

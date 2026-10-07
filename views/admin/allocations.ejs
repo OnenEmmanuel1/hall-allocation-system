@@ -81,6 +81,11 @@
                         <i data-lucide="play" style="width:13px;height:13px;"></i> 
                         <span><%= s.status === 'allocated' ? 'Re-run Engine' : 'Run Allocation' %></span>
                       </button>
+                      <% if (s.status === 'allocated') { %>
+                        <button class="ehas-btn ehas-btn-outline text-danger ehas-btn-sm ms-1" onclick="deallocate(<%= s.schedule_id %>)" id="btn-clear-<%= s.schedule_id %>">
+                          <i data-lucide="undo-2" style="width:13px;height:13px;"></i> Deallocate
+                        </button>
+                      <% } %>
                     </td>
                   </tr>
                 <% }) %>
@@ -163,6 +168,24 @@
       btn.disabled = false;
       btn.innerHTML = originalText;
       if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  async function deallocate(scheduleId) {
+    if (!confirm('Remove all seat assignments for this exam and return it to pending?')) return;
+    const btn = document.getElementById(`btn-clear-${scheduleId}`);
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/api/allocations/${scheduleId}`, { method: 'DELETE' });
+      const data = await res.json();
+      const msgDiv = document.getElementById('allocationMessage');
+      msgDiv.style.display = 'block';
+      msgDiv.className = data.success ? 'ehas-alert ehas-alert-success' : 'ehas-alert ehas-alert-error';
+      msgDiv.textContent = data.message || data.error || 'Could not deallocate this exam.';
+      if (data.success) setTimeout(() => window.location.reload(), 900);
+    } catch (e) {
+      btn.disabled = false;
+      alert('Network error while removing allocations.');
     }
   }
 </script>

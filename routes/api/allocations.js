@@ -32,6 +32,37 @@ router.post('/run-all', isAdmin, async (req, res) => {
   }
 });
 
+/* DELETE /api/allocations/:scheduleId — remove a schedule's seat assignments */
+router.delete('/:scheduleId', isAdmin, async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [schedules] = await connection.query(
+      'SELECT schedule_id FROM tbl_exam_schedule WHERE schedule_id = ? FOR UPDATE',
+      [req.params.scheduleId]
+    );
+    if (!schedules.length) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, error: 'Exam schedule not found.' });
+    }
+    const [result] = await connection.query(
+      'DELETE FROM tbl_allocations WHERE schedule_id = ?', [req.params.scheduleId]
+    );
+    await connection.query(
+      "UPDATE tbl_exam_schedule SET status = 'pending' WHERE schedule_id = ?",
+      [req.params.scheduleId]
+    );
+    await connection.commit();
+    res.json({ success: true, message: `Removed ${result.affectedRows} seat assignment(s). Schedule is pending again.` });
+  } catch (err) {
+    await connection.rollback();
+    console.error('Deallocate error:', err);
+    res.status(500).json({ success: false, error: 'Could not remove allocations.' });
+  } finally {
+    connection.release();
+  }
+});
+
 /* GET /api/allocations/report — fetch allocation report */
 router.get('/report', isAdmin, async (req, res) => {
   try {
